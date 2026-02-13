@@ -1,0 +1,155 @@
+======================================================================
+BROKEN AUTHENTICATION ASSIGNMENT - TEST OUTPUT
+======================================================================
+
+This file contains the terminal output of all 4 test commands demonstrating
+the fixed authentication flow.
+
+======================================================================
+TASK 1: FIX LOGIN
+Endpoint: POST /auth/login
+======================================================================
+
+Command:
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"myemail@example.com","password":"password123"}'
+
+Response:
+{
+    "message": "OTP sent",
+    "loginSessionId": "qzcldm"
+}
+
+Server Logs:
+POST /auth/login
+[OTP] Session qzcldm generated with OTP: 153096
+POST /auth/login -> 200 (4ms)
+
+Status: ✓ PASSED
+- Server generates session ID: qzcldm
+- Server logs OTP to console: 153096
+- Response contains loginSessionId
+
+
+======================================================================
+TASK 2: FIX OTP VERIFICATION
+Endpoint: POST /auth/verify-otp
+======================================================================
+
+Command:
+curl -c cookies.txt -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"loginSessionId":"qzcldm","otp":"153096"}'
+
+Response:
+{
+    "message": "OTP verified",
+    "sessionId": "qzcldm"
+}
+
+Server Logs:
+POST /auth/verify-otp
+POST /auth/verify-otp -> 200 (1ms)
+
+Status: ✓ PASSED
+- OTP verified successfully
+- Session cookie (session_token) set in cookies.txt
+- Response confirms verification
+
+
+======================================================================
+TASK 3: FIX TOKEN GENERATION
+Endpoint: POST /auth/token
+======================================================================
+
+Command:
+curl -b cookies.txt -X POST http://localhost:3000/auth/token
+
+Response:
+{
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im15ZW1haWxAZXhhbXBsZS5jb20iLCJzZXNzaW9uSWQiOiJxemNsZG0iLCJpYXQiOjE3NzEwMDUzMTUsImV4cCI6MTc3MTAwNjIxNX0.XKdbZHRwYCJldFrT-r2wlLaAwcx9LWBthnOGgBpjQCc",
+    "expires_in": 900
+}
+
+Server Logs:
+POST /auth/token
+POST /auth/token -> 200 (2ms)
+
+Status: ✓ PASSED
+- JWT access token generated successfully
+- Token expires in 900 seconds (15 minutes)
+- Session cookie successfully read from request
+
+
+======================================================================
+TASK 4: FIX PROTECTED ROUTE ACCESS
+Endpoint: GET /protected
+======================================================================
+
+Command:
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im15ZW1haWxAZXhhbXBsZS5jb20iLCJzZXNzaW9uSWQiOiJxemNsZG0iLCJpYXQiOjE3NzEwMDUzMTUsImV4cCI6MTc3MTAwNjIxNX0.XKdbZHRwYCJldFrT-r2wlLaAwcx9LWBthnOGgBpjQCc" \
+  http://localhost:3000/protected
+
+Response:
+{
+    "message": "Access granted",
+    "user": {
+        "email": "myemail@example.com",
+        "sessionId": "qzcldm",
+        "iat": 1771005315,
+        "exp": 1771006215
+    },
+    "success_flag": "FLAG-bXllbWFpbEBleGFtcGxlLmNvbV9DT01QTEVURURfQVNTSUdOTUVOVA=="
+}
+
+Server Logs:
+GET /protected
+GET /protected -> 200 (3ms)
+
+Status: ✓ PASSED
+- Protected route accessed successfully
+- JWT token validated by middleware
+- User data retrieved from token
+- SUCCESS FLAG received: FLAG-bXllbWFpbEBleGFtcGxlLmNvbV9DT01QTEVURURfQVNTSUdOTUVOVA==
+
+
+======================================================================
+SUMMARY
+======================================================================
+
+All 4 tasks completed successfully:
+✓ Task 1: Login - OTP generated and logged
+✓ Task 2: OTP Verification - Session cookie set
+✓ Task 3: Token Generation - JWT access token issued
+✓ Task 4: Protected Route Access - Token validated, access granted
+
+Email used: myemail@example.com
+Success Flag: FLAG-bXllbWFpbEBleGFtcGxlLmNvbV9DT01QTEVURURfQVNTSUdOTUVOVA==
+
+======================================================================
+BUGS FIXED
+======================================================================
+
+1. Logger Middleware (middleware/logger.js):
+   - Added missing next() call to allow requests to proceed
+
+2. Task 1 - Login (server.js):
+   - Modified console.log to include the actual OTP number
+   - Changed from: console.log(`[OTP] Session ${loginSessionId} generated`)
+   - Changed to: console.log(`[OTP] Session ${loginSessionId} generated with OTP: ${otp}`)
+
+3. Task 2 - Cookie Parser (server.js):
+   - Added missing cookie-parser middleware
+   - Added: app.use(cookieParser())
+
+4. Task 3 - Token Generation (server.js):
+   - Fixed session reading from cookies instead of authorization header
+   - Changed from: req.headers.authorization
+   - Changed to: req.cookies.session_token
+
+5. Task 4 - Auth Middleware (middleware/auth.js):
+   - Added missing next() call after successful token verification
+   - Ensures request proceeds to protected route handler
+
+======================================================================
